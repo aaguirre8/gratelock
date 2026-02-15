@@ -13,6 +13,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -40,13 +41,18 @@ fun HomeScreen(
     onNavigateToAppSelection: () -> Unit = {},
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    HomeScreenContent(uiState = uiState, onNavigateToAppSelection = onNavigateToAppSelection)
+    HomeScreenContent(
+        uiState = uiState,
+        onNavigateToAppSelection = onNavigateToAppSelection,
+        onEvent = viewModel::onEvent,
+    )
 }
 
 @Composable
 private fun HomeScreenContent(
     uiState: HomeUiState,
     onNavigateToAppSelection: () -> Unit = {},
+    onEvent: (HomeEvent) -> Unit = {},
 ) {
     when (uiState) {
         is HomeUiState.Loading -> {
@@ -106,6 +112,21 @@ private fun HomeScreenContent(
                         text = "Manage blocked apps",
                         style = MaterialTheme.typography.labelLarge,
                     )
+                }
+
+                // Debug button: only shown when unlocked, for testing
+                if (uiState.isUnlockedToday) {
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    TextButton(
+                        onClick = { onEvent(HomeEvent.DebugRelock) },
+                    ) {
+                        Text(
+                            text = "Re-lock apps (debug)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
                 }
             }
         }
