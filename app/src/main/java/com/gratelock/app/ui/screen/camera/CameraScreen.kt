@@ -112,18 +112,15 @@ private fun CameraScreenContent(
     onUnlocked: () -> Unit = {},
 ) {
     when (uiState) {
-        is CameraUiState.Previewing -> {
+        is CameraUiState.Previewing, is CameraUiState.Capturing -> {
+            // Keep a single CameraPreviewContent instance for both states
+            // so the CameraX binding is never torn down on capture.
+            val isFlashOn = (uiState as? CameraUiState.Previewing)?.isFlashOn ?: false
+            val isCapturing = uiState is CameraUiState.Capturing
             CameraPreviewContent(
-                isFlashOn = uiState.isFlashOn,
+                isFlashOn = isFlashOn,
                 onEvent = onEvent,
-            )
-        }
-
-        is CameraUiState.Capturing -> {
-            CameraPreviewContent(
-                isFlashOn = false,
-                onEvent = onEvent,
-                isCapturing = true,
+                isCapturing = isCapturing,
             )
         }
 
