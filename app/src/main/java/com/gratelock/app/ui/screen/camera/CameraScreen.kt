@@ -1,8 +1,12 @@
 package com.gratelock.app.ui.screen.camera
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
@@ -28,31 +32,30 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 /**
  * Camera screen composable for photographing journal entries.
  *
- * Uses CameraX for preview and capture. Shows a guide overlay,
- * capture button, and flash toggle. On capture, processes the photo
- * through ML Kit validation and perceptual hash duplicate detection.
+ * Requests camera permission at runtime before showing the CameraX preview.
+ * On capture, processes the photo through ML Kit validation and perceptual
+ * hash duplicate detection.
  *
  * @param viewModel The [CameraViewModel] managing state.
  * @param onUnlocked Callback when the entry is saved and apps are unlocked.
@@ -63,11 +66,43 @@ fun CameraScreen(
     onUnlocked: () -> Unit = {},
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    CameraScreenContent(
-        uiState = uiState,
-        onEvent = viewModel::onEvent,
-        onUnlocked = onUnlocked,
-    )
+    val context = LocalContext.current
+
+    var hasCameraPermission by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.CAMERA,
+            ) == PackageManager.PERMISSION_GRANTED,
+        )
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        hasCameraPermission = granted
+    }
+
+    // Request permission on first composition if not already granted
+    LaunchedEffect(Unit) {
+        if (!hasCameraPermission) {
+            permissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
+
+    if (hasCameraPermission) {
+        CameraScreenContent(
+            uiState = uiState,
+            onEvent = viewModel::onEvent,
+            onUnlocked = onUnlocked,
+        )
+    } else {
+        PermissionDeniedContent(
+            onRequestPermission = {
+                permissionLauncher.launch(Manifest.permission.CAMERA)
+            },
+        )
+    }
 }
 
 @Composable
@@ -107,6 +142,53 @@ private fun CameraScreenContent(
             SuccessContent(
                 streak = uiState.newStreak,
                 onUnlocked = onUnlocked,
+            )
+        }
+    }
+}
+
+@Composable
+private fun PermissionDeniedContent(
+    onRequestPermission: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Text(
+            text = "Camera access needed",
+            style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.onBackground,
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(
+            text = "GrateLock needs camera access to photograph your journal entry. " +
+                "Your photos stay on your device.",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        Button(
+            onClick = onRequestPermission,
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+            ),
+        ) {
+            Text(
+                text = "Grant camera permission",
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
             )
         }
     }
