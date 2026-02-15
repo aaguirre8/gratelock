@@ -11,6 +11,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.gratelock.app.ui.navigation.Screen
+import com.gratelock.app.ui.screen.camera.CameraScreen
 import com.gratelock.app.ui.screen.gratitudeform.GratitudeFormScreen
 import com.gratelock.app.ui.theme.GrateLockTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -69,6 +70,9 @@ class BlockingOverlayActivity : ComponentActivity() {
                                     is BlockingOverlayEvent.TypeEntry -> {
                                         navController.navigate(Screen.GratitudeForm.route)
                                     }
+                                    is BlockingOverlayEvent.PhotoEntry -> {
+                                        navController.navigate(Screen.Camera.route)
+                                    }
                                     else -> viewModel.onEvent(event)
                                 }
                             },
@@ -77,6 +81,14 @@ class BlockingOverlayActivity : ComponentActivity() {
 
                     composable(Screen.GratitudeForm.route) {
                         GratitudeFormScreen(
+                            onUnlocked = {
+                                viewModel.markUnlocked()
+                            },
+                        )
+                    }
+
+                    composable(Screen.Camera.route) {
+                        CameraScreen(
                             onUnlocked = {
                                 viewModel.markUnlocked()
                             },

@@ -21,9 +21,8 @@ import javax.inject.Inject
  * ViewModel for the blocking overlay screen.
  *
  * Loads the blocked app's info and handles unlock actions.
- * The "Type it" CTA navigates to the Gratitude Form within the
- * overlay's mini NavHost. "Photograph" remains a temporary unlock
- * until Increment 6 implements the camera flow.
+ * Both "Type it" and "Photograph" CTAs navigate to their respective
+ * entry flows within the overlay's mini NavHost.
  *
  * @param savedStateHandle Holds the blocked package name from the intent.
  * @param context Application context for querying PackageManager.
@@ -56,14 +55,16 @@ class BlockingOverlayViewModel @Inject constructor(
             is BlockingOverlayEvent.TypeEntry -> {
                 // Navigation handled by the Activity's NavHost
             }
-            is BlockingOverlayEvent.PhotoEntry -> temporaryUnlock()
+            is BlockingOverlayEvent.PhotoEntry -> {
+                // Navigation handled by the Activity's NavHost
+            }
             is BlockingOverlayEvent.EmergencyUnlock -> emergencyUnlock()
         }
     }
 
     /**
      * Signals that the entry flow completed and apps should be considered unlocked.
-     * Called by the Activity after the GratitudeForm emits success.
+     * Called by the Activity after the GratitudeForm or Camera flow emits success.
      */
     fun markUnlocked() {
         _uiState.value = BlockingOverlayUiState.Unlocked
@@ -95,18 +96,6 @@ class BlockingOverlayViewModel @Inject constructor(
                     emergencyUnlocksRemaining = preferences.emergencyUnlocksRemaining,
                 )
             }
-        }
-    }
-
-    /**
-     * Temporary unlock — will be replaced by real camera flow in Increment 6.
-     * For now, the "Photograph" CTA just unlocks apps for the day.
-     */
-    private fun temporaryUnlock() {
-        viewModelScope.launch {
-            statsRepository.setUnlockedToday(true)
-            preferences.isUnlockedToday = true
-            _uiState.value = BlockingOverlayUiState.Unlocked
         }
     }
 
