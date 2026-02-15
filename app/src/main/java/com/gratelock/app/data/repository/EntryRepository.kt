@@ -33,6 +33,12 @@ interface EntryRepository {
      */
     suspend fun getRecentPhotoHashes(limit: Int): List<String>
 
+    /**
+     * @param id The journal entry ID.
+     * @return The entry with the given ID, or null.
+     */
+    suspend fun getEntryById(id: Long): JournalEntry?
+
     /** @return Total number of entries. */
     suspend fun getEntryCount(): Int
 

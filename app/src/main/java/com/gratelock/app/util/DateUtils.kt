@@ -92,4 +92,26 @@ object DateUtils {
      */
     fun format(date: LocalDate): String =
         date.format(formatter)
+
+    private val displayFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy")
+
+    /**
+     * Formats a "YYYY-MM-DD" date string for user-friendly display.
+     *
+     * @param dateString A date in "YYYY-MM-DD" format.
+     * @return The date formatted as "Feb 15, 2026".
+     */
+    fun toDisplayDate(dateString: String): String =
+        LocalDate.parse(dateString, formatter).format(displayFormatter)
+
+    private val shortDisplayFormatter = DateTimeFormatter.ofPattern("MMM d")
+
+    /**
+     * Formats a "YYYY-MM-DD" date string for compact display (no year).
+     *
+     * @param dateString A date in "YYYY-MM-DD" format.
+     * @return The date formatted as "Feb 15".
+     */
+    fun toShortDisplayDate(dateString: String): String =
+        LocalDate.parse(dateString, formatter).format(shortDisplayFormatter)
 }

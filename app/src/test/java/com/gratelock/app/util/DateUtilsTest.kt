@@ -113,4 +113,29 @@ class DateUtilsTest {
         // Should be after 2025-01-01 in epoch millis
         assertTrue(millis > 1_735_689_600_000L)
     }
+
+    @Test
+    fun toDisplayDate_formatsCorrectly() {
+        assertEquals("Feb 15, 2026", DateUtils.toDisplayDate("2026-02-15"))
+    }
+
+    @Test
+    fun toDisplayDate_handlesJanuary() {
+        assertEquals("Jan 1, 2026", DateUtils.toDisplayDate("2026-01-01"))
+    }
+
+    @Test
+    fun toDisplayDate_handlesDecember() {
+        assertEquals("Dec 31, 2025", DateUtils.toDisplayDate("2025-12-31"))
+    }
+
+    @Test
+    fun toShortDisplayDate_formatsWithoutYear() {
+        assertEquals("Feb 15", DateUtils.toShortDisplayDate("2026-02-15"))
+    }
+
+    @Test
+    fun toShortDisplayDate_handlesSingleDigitDay() {
+        assertEquals("Mar 3", DateUtils.toShortDisplayDate("2026-03-03"))
+    }
 }

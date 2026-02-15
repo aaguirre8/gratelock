@@ -52,6 +52,13 @@ interface EntryDao {
     @Query("SELECT photoHash FROM journal_entries WHERE photoHash IS NOT NULL ORDER BY capturedAt DESC LIMIT :limit")
     suspend fun getRecentPhotoHashes(limit: Int): List<String>
 
+    /**
+     * @param id The journal entry ID.
+     * @return The entry with the given ID, or null.
+     */
+    @Query("SELECT * FROM journal_entries WHERE id = :id LIMIT 1")
+    suspend fun getById(id: Long): JournalEntry?
+
     /** @return Total count of journal entries. */
     @Query("SELECT COUNT(*) FROM journal_entries")
     suspend fun count(): Int

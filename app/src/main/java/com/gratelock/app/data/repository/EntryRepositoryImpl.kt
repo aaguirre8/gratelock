@@ -35,6 +35,9 @@ class EntryRepositoryImpl @Inject constructor(
     override suspend fun getRecentPhotoHashes(limit: Int): List<String> =
         entryDao.getRecentPhotoHashes(limit)
 
+    override suspend fun getEntryById(id: Long): JournalEntry? =
+        entryDao.getById(id)
+
     override suspend fun getEntryCount(): Int =
         entryDao.count()
 

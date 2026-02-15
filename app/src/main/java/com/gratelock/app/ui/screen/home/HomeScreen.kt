@@ -1,14 +1,17 @@
 package com.gratelock.app.ui.screen.home
 
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -23,14 +26,16 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.gratelock.app.ui.component.HappinessJar
+import com.gratelock.app.ui.component.StreakBadge
+import com.gratelock.app.ui.component.TodayStatus
 import com.gratelock.app.ui.theme.GrateLockTheme
 
 /**
  * Home screen composable.
  *
  * Displays the user's current streak, Happiness Jar fill level,
- * and today's unlock status. This is a placeholder implementation
- * that will be fully built in Increment 7.
+ * and today's unlock status. Shows real data from Room stats.
  *
  * @param viewModel The [HomeViewModel] managing state.
  * @param onNavigateToAppSelection Callback to navigate to the App Selection screen.
@@ -71,38 +76,50 @@ private fun HomeScreenContent(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
+                    .verticalScroll(rememberScrollState())
                     .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
             ) {
+                Spacer(modifier = Modifier.height(16.dp))
+
                 Text(
                     text = "GrateLock",
                     style = MaterialTheme.typography.displayMedium,
                     color = MaterialTheme.colorScheme.primary,
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
                     text = "Gratitude first, scroll second",
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                 )
 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
-                Text(
-                    text = if (uiState.isUnlockedToday) "Unlocked for today" else "Journal to unlock",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = if (uiState.isUnlockedToday) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.secondary
-                    },
+                TodayStatus(
+                    isUnlockedToday = uiState.isUnlockedToday,
+                    modifier = Modifier.fillMaxWidth(),
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
+
+                StreakBadge(
+                    currentStreak = uiState.currentStreak,
+                    longestStreak = uiState.longestStreak,
+                )
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                HappinessJar(
+                    fillPercent = uiState.jarFillPercent,
+                    totalEntries = uiState.totalEntries,
+                )
+
+                Spacer(modifier = Modifier.height(32.dp))
 
                 OutlinedButton(
                     onClick = onNavigateToAppSelection,
@@ -128,6 +145,8 @@ private fun HomeScreenContent(
                         )
                     }
                 }
+
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
     }
