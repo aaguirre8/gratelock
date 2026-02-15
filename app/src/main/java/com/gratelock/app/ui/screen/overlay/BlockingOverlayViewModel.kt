@@ -60,6 +60,9 @@ class BlockingOverlayViewModel @Inject constructor(
 
     private fun loadBlockedAppInfo() {
         viewModelScope.launch {
+            // Ensure stats row exists before any UPDATE queries
+            statsRepository.initializeStats()
+
             try {
                 val pm = context.packageManager
                 val appInfo = pm.getApplicationInfo(blockedPackage, 0)
