@@ -24,6 +24,11 @@
     <!-- Optional: notifications for reminders and wraps -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- Required: list all installed apps for the app selection screen (Android 11+) -->
+    <uses-permission
+        android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
+
     <uses-feature
         android:name="android.hardware.camera"
         android:required="false" />
