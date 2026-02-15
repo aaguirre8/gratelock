@@ -42,8 +42,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.style.TextAlign
+import androidx.lifecycle.LifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
@@ -201,7 +201,10 @@ private fun CameraPreviewContent(
     isCapturing: Boolean = false,
 ) {
     val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
+    // Use the Activity as lifecycle owner — LocalLifecycleOwner inside a NavHost
+    // composable may not be in STARTED state when CameraX tries to bind,
+    // causing a black preview.
+    val lifecycleOwner = context as LifecycleOwner
 
     val imageCapture = remember {
         ImageCapture.Builder()
