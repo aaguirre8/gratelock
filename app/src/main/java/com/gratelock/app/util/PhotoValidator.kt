@@ -34,17 +34,17 @@ sealed interface PhotoValidationResult {
 /**
  * Validates journal photos using ML Kit text recognition.
  *
- * Checks that the photo contains enough handwritten text to be a genuine
- * journal entry: minimum text blocks, character count, and ML confidence.
+ * Relies on ML Kit's built-in text detection capabilities rather than
+ * re-implementing confidence scoring. If ML Kit finds text blocks with
+ * enough total characters, the photo is considered a valid journal entry.
  */
 object PhotoValidator {
 
-    private const val MIN_TEXT_BLOCKS = 3
-    private const val MIN_TOTAL_CHARS = 30
-    private const val MIN_CONFIDENCE = 0.5f
+    private const val MIN_TEXT_BLOCKS = 1
+    private const val MIN_TOTAL_CHARS = 15
 
     /**
-     * Validates a captured photo for handwritten journal content.
+     * Validates a captured photo for journal content.
      *
      * @param bitmap The captured photo to validate.
      * @return [PhotoValidationResult.Valid] if the photo contains enough text,
@@ -60,12 +60,12 @@ object PhotoValidator {
                     val textBlocks = result.textBlocks
                     val totalText = result.text
 
-                    // Check minimum text blocks
+                    // Check that ML Kit found any text at all
                     if (textBlocks.size < MIN_TEXT_BLOCKS) {
                         cont.resume(
                             PhotoValidationResult.Invalid(
-                                "We couldn't find enough text in your photo. " +
-                                    "Try writing a bit more or adjusting the angle.",
+                                "We couldn't find any text in your photo. " +
+                                    "Make sure your journal page is clearly visible.",
                             ),
                         )
                         return@addOnSuccessListener
@@ -76,31 +76,7 @@ object PhotoValidator {
                         cont.resume(
                             PhotoValidationResult.Invalid(
                                 "Your journal entry looks a bit short. " +
-                                    "Try including at least a few sentences of gratitude.",
-                            ),
-                        )
-                        return@addOnSuccessListener
-                    }
-
-                    // Check average confidence across text blocks
-                    val confidences = textBlocks.mapNotNull { block ->
-                        block.lines.mapNotNull { line ->
-                            line.elements.mapNotNull { it.confidence }.average()
-                                .takeIf { !it.isNaN() }
-                        }.average().takeIf { !it.isNaN() }
-                    }
-
-                    val avgConfidence = if (confidences.isNotEmpty()) {
-                        confidences.average().toFloat()
-                    } else {
-                        0f
-                    }
-
-                    if (avgConfidence < MIN_CONFIDENCE) {
-                        cont.resume(
-                            PhotoValidationResult.Invalid(
-                                "The text is a bit hard to read. " +
-                                    "Try taking the photo in better lighting or holding the camera steady.",
+                                    "Try including at least a few words of gratitude.",
                             ),
                         )
                         return@addOnSuccessListener
