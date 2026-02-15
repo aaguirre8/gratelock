@@ -8,8 +8,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -28,17 +30,24 @@ import com.gratelock.app.ui.theme.GrateLockTheme
  * Displays the user's current streak, Happiness Jar fill level,
  * and today's unlock status. This is a placeholder implementation
  * that will be fully built in Increment 7.
+ *
+ * @param viewModel The [HomeViewModel] managing state.
+ * @param onNavigateToAppSelection Callback to navigate to the App Selection screen.
  */
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
+    onNavigateToAppSelection: () -> Unit = {},
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    HomeScreenContent(uiState = uiState)
+    HomeScreenContent(uiState = uiState, onNavigateToAppSelection = onNavigateToAppSelection)
 }
 
 @Composable
-private fun HomeScreenContent(uiState: HomeUiState) {
+private fun HomeScreenContent(
+    uiState: HomeUiState,
+    onNavigateToAppSelection: () -> Unit = {},
+) {
     when (uiState) {
         is HomeUiState.Loading -> {
             Box(
@@ -86,6 +95,18 @@ private fun HomeScreenContent(uiState: HomeUiState) {
                         MaterialTheme.colorScheme.secondary
                     },
                 )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                OutlinedButton(
+                    onClick = onNavigateToAppSelection,
+                    shape = RoundedCornerShape(12.dp),
+                ) {
+                    Text(
+                        text = "Manage blocked apps",
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                }
             }
         }
     }

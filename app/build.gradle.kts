@@ -98,8 +98,14 @@ dependencies {
     // Coil (image loading in Compose)
     implementation("io.coil-kt:coil-compose:2.5.0")
 
+    // Accompanist (Drawable painter for app icons in Compose)
+    implementation("com.google.accompanist:accompanist-drawablepainter:0.34.0")
+
     // Testing
     testImplementation("junit:junit:4.13.2")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
+    testImplementation("org.mockito:mockito-core:5.8.0")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
     androidTestImplementation(platform("androidx.compose:compose-bom:2024.02.00"))
