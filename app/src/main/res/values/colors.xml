@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="cream">#FFF8F0</color>
+    <color name="soft_beige">#F5E6D3</color>
+    <color name="warm_beige">#EDD9C4</color>
+    <color name="sage_green">#A8B5A0</color>
+    <color name="sage_green_light">#C5D1BF</color>
+    <color name="sage_green_dark">#8A9A82</color>
+    <color name="dusty_rose">#C9A9A6</color>
+    <color name="dusty_rose_light">#DEC5C3</color>
+    <color name="dusty_rose_dark">#B08E8B</color>
+    <color name="dark_warm">#3D3229</color>
+    <color name="medium_warm">#6B5D50</color>
+    <color name="light_warm">#9A8B7D</color>
+</resources>
