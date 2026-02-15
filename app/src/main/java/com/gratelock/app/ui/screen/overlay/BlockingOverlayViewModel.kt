@@ -21,8 +21,9 @@ import javax.inject.Inject
  * ViewModel for the blocking overlay screen.
  *
  * Loads the blocked app's info and handles unlock actions.
- * Temporary: both "Type it" and "Photograph" just unlock for the day
- * until Increments 5 and 6 implement the real entry flows.
+ * The "Type it" CTA navigates to the Gratitude Form within the
+ * overlay's mini NavHost. "Photograph" remains a temporary unlock
+ * until Increment 6 implements the camera flow.
  *
  * @param savedStateHandle Holds the blocked package name from the intent.
  * @param context Application context for querying PackageManager.
@@ -52,10 +53,20 @@ class BlockingOverlayViewModel @Inject constructor(
     /** @param event The [BlockingOverlayEvent] to process. */
     fun onEvent(event: BlockingOverlayEvent) {
         when (event) {
-            is BlockingOverlayEvent.TypeEntry -> temporaryUnlock()
+            is BlockingOverlayEvent.TypeEntry -> {
+                // Navigation handled by the Activity's NavHost
+            }
             is BlockingOverlayEvent.PhotoEntry -> temporaryUnlock()
             is BlockingOverlayEvent.EmergencyUnlock -> emergencyUnlock()
         }
+    }
+
+    /**
+     * Signals that the entry flow completed and apps should be considered unlocked.
+     * Called by the Activity after the GratitudeForm emits success.
+     */
+    fun markUnlocked() {
+        _uiState.value = BlockingOverlayUiState.Unlocked
     }
 
     private fun loadBlockedAppInfo() {
@@ -88,8 +99,8 @@ class BlockingOverlayViewModel @Inject constructor(
     }
 
     /**
-     * Temporary unlock — will be replaced by real entry flows in Increments 5/6.
-     * For now, both CTAs just unlock apps for the day.
+     * Temporary unlock — will be replaced by real camera flow in Increment 6.
+     * For now, the "Photograph" CTA just unlocks apps for the day.
      */
     private fun temporaryUnlock() {
         viewModelScope.launch {

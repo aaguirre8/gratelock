@@ -2,10 +2,16 @@ package com.gratelock.app.ui.screen.overlay
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.gratelock.app.ui.navigation.Screen
+import com.gratelock.app.ui.screen.gratitudeform.GratitudeFormScreen
 import com.gratelock.app.ui.theme.GrateLockTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -17,8 +23,8 @@ import dagger.hilt.android.AndroidEntryPoint
  * with [FLAG_ACTIVITY_NEW_TASK]. The activity has an empty taskAffinity
  * and is excluded from recents to prevent the user from dismissing it.
  *
- * Currently both CTAs ("Type it" / "Photograph") temporarily unlock for
- * the day. Real entry flows will be connected in Increments 5 and 6.
+ * Contains a mini NavHost to navigate between the overlay screen and
+ * entry flows (Gratitude Form, Camera, etc.).
  */
 @AndroidEntryPoint
 class BlockingOverlayActivity : ComponentActivity() {
@@ -28,6 +34,13 @@ class BlockingOverlayActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // Block back press — overlay cannot be dismissed without journaling
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                // Intentionally empty — user must journal or use an emergency unlock.
+            }
+        })
+
         // Pass the blocked package to the ViewModel via SavedStateHandle
         intent.getStringExtra(EXTRA_BLOCKED_PACKAGE)?.let { pkg ->
             intent.putExtra("blocked_package", pkg)
@@ -36,6 +49,7 @@ class BlockingOverlayActivity : ComponentActivity() {
         setContent {
             GrateLockTheme {
                 val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+                val navController = rememberNavController()
 
                 // Dismiss overlay when unlocked
                 if (uiState is BlockingOverlayUiState.Unlocked) {
@@ -43,22 +57,40 @@ class BlockingOverlayActivity : ComponentActivity() {
                     return@GrateLockTheme
                 }
 
-                BlockingOverlayScreen(
-                    uiState = uiState,
-                    onEvent = viewModel::onEvent,
-                )
+                NavHost(
+                    navController = navController,
+                    startDestination = ROUTE_OVERLAY,
+                ) {
+                    composable(ROUTE_OVERLAY) {
+                        BlockingOverlayScreen(
+                            uiState = uiState,
+                            onEvent = { event ->
+                                when (event) {
+                                    is BlockingOverlayEvent.TypeEntry -> {
+                                        navController.navigate(Screen.GratitudeForm.route)
+                                    }
+                                    else -> viewModel.onEvent(event)
+                                }
+                            },
+                        )
+                    }
+
+                    composable(Screen.GratitudeForm.route) {
+                        GratitudeFormScreen(
+                            onUnlocked = {
+                                viewModel.markUnlocked()
+                            },
+                        )
+                    }
+                }
             }
         }
-    }
-
-    @Deprecated("Back press should not dismiss the overlay")
-    override fun onBackPressed() {
-        // Intentionally empty — overlay cannot be dismissed with back button.
-        // The user must journal or use an emergency unlock.
     }
 
     companion object {
         /** Intent extra key for the blocked app's package name. */
         const val EXTRA_BLOCKED_PACKAGE = "extra_blocked_package"
+
+        private const val ROUTE_OVERLAY = "overlay"
     }
 }
