@@ -1,7 +1,5 @@
 package com.gratelock.app.ui.screen.camera
 
-import android.graphics.Bitmap
-
 /**
  * UI state for the Camera screen.
  */
@@ -16,9 +14,7 @@ sealed interface CameraUiState {
     data object Capturing : CameraUiState
 
     /** Photo captured, now processing (ML Kit + hash). */
-    data class Processing(
-        val capturedBitmap: Bitmap,
-    ) : CameraUiState
+    data object Processing : CameraUiState
 
     /**
      * Validation failed — show error and allow retry.

@@ -3,6 +3,7 @@ package com.gratelock.app.ui.screen.camera
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 /**
  * Unit tests for [CameraViewModel] state transitions.
@@ -37,6 +38,12 @@ class CameraViewModelTest {
     }
 
     @Test
+    fun cameraUiState_processing_isCorrectType() {
+        val state: CameraUiState = CameraUiState.Processing
+        assertTrue(state is CameraUiState.Processing)
+    }
+
+    @Test
     fun cameraEvent_capture_isDataObject() {
         val event: CameraEvent = CameraEvent.Capture
         assertTrue(event is CameraEvent.Capture)
@@ -52,5 +59,12 @@ class CameraViewModelTest {
     fun cameraEvent_retry_isDataObject() {
         val event: CameraEvent = CameraEvent.Retry
         assertTrue(event is CameraEvent.Retry)
+    }
+
+    @Test
+    fun cameraEvent_photoSaved_holdsFile() {
+        val file = File("photo.jpg")
+        val event = CameraEvent.PhotoSaved(file)
+        assertEquals("photo.jpg", event.file.name)
     }
 }

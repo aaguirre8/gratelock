@@ -2,15 +2,11 @@ package com.gratelock.app.ui.screen.camera
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.graphics.Matrix
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
-import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
@@ -43,19 +39,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
-import androidx.lifecycle.LifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import java.io.File
 
 /**
  * Camera screen composable for photographing journal entries.
  *
  * Requests camera permission at runtime before showing the CameraX preview.
- * On capture, processes the photo through ML Kit validation and perceptual
- * hash duplicate detection.
+ * On capture, CameraX saves the photo directly to a JPEG file, then ML Kit
+ * reads text from that file via [InputImage.fromFilePath]. This avoids
+ * manual bitmap conversion and gives ML Kit the best image quality.
  *
  * @param viewModel The [CameraViewModel] managing state.
  * @param onUnlocked Callback when the entry is saved and apps are unlocked.
@@ -67,6 +65,7 @@ fun CameraScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val photosDir = remember { viewModel.getPhotosDir() }
 
     var hasCameraPermission by remember {
         mutableStateOf(
@@ -95,6 +94,7 @@ fun CameraScreen(
             uiState = uiState,
             onEvent = viewModel::onEvent,
             onUnlocked = onUnlocked,
+            photosDir = photosDir,
         )
     } else {
         PermissionDeniedContent(
@@ -110,6 +110,7 @@ private fun CameraScreenContent(
     uiState: CameraUiState,
     onEvent: (CameraEvent) -> Unit = {},
     onUnlocked: () -> Unit = {},
+    photosDir: File,
 ) {
     when (uiState) {
         is CameraUiState.Previewing, is CameraUiState.Capturing -> {
@@ -121,6 +122,7 @@ private fun CameraScreenContent(
                 isFlashOn = isFlashOn,
                 onEvent = onEvent,
                 isCapturing = isCapturing,
+                photosDir = photosDir,
             )
         }
 
@@ -196,6 +198,7 @@ private fun CameraPreviewContent(
     isFlashOn: Boolean,
     onEvent: (CameraEvent) -> Unit,
     isCapturing: Boolean = false,
+    photosDir: File,
 ) {
     val context = LocalContext.current
     // Use the Activity as lifecycle owner — LocalLifecycleOwner inside a NavHost
@@ -239,20 +242,23 @@ private fun CameraPreviewContent(
         }
     }
 
-    // Trigger capture when state changes to Capturing
+    // Trigger capture when state changes to Capturing.
+    // CameraX saves directly to a JPEG file — no manual bitmap conversion.
+    // This preserves full image quality and EXIF rotation metadata.
     LaunchedEffect(isCapturing) {
         if (isCapturing) {
+            val photoFile = File(
+                photosDir,
+                "journal_${System.currentTimeMillis()}.jpg",
+            )
+            val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile).build()
+
             imageCapture.takePicture(
+                outputOptions,
                 ContextCompat.getMainExecutor(context),
-                object : ImageCapture.OnImageCapturedCallback() {
-                    override fun onCaptureSuccess(image: ImageProxy) {
-                        val bitmap = imageProxyToBitmap(image)
-                        image.close()
-                        if (bitmap != null) {
-                            onEvent(CameraEvent.PhotoCaptured(bitmap))
-                        } else {
-                            onEvent(CameraEvent.Retry)
-                        }
+                object : ImageCapture.OnImageSavedCallback {
+                    override fun onImageSaved(output: ImageCapture.OutputFileResults) {
+                        onEvent(CameraEvent.PhotoSaved(photoFile))
                     }
 
                     override fun onError(exception: ImageCaptureException) {
@@ -486,28 +492,5 @@ private fun SuccessContent(
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp),
             )
         }
-    }
-}
-
-/**
- * Converts an [ImageProxy] to a [Bitmap], correcting for rotation.
- *
- * @param imageProxy The captured image proxy from CameraX.
- * @return The corrected bitmap, or null if conversion fails.
- */
-private fun imageProxyToBitmap(imageProxy: ImageProxy): Bitmap? {
-    val buffer = imageProxy.planes[0].buffer
-    val bytes = ByteArray(buffer.remaining())
-    buffer.get(bytes)
-
-    val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return null
-
-    // Apply rotation correction
-    val rotation = imageProxy.imageInfo.rotationDegrees
-    return if (rotation != 0) {
-        val matrix = Matrix().apply { postRotate(rotation.toFloat()) }
-        Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
-    } else {
-        bitmap
     }
 }

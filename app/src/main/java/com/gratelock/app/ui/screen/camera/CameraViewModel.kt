@@ -1,7 +1,6 @@
 package com.gratelock.app.ui.screen.camera
 
 import android.content.Context
-import android.graphics.Bitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gratelock.app.data.local.entity.JournalEntry
@@ -19,21 +18,25 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.io.File
-import java.io.FileOutputStream
 import javax.inject.Inject
 
 /**
  * ViewModel for the Camera screen.
  *
- * Manages camera state, photo capture, ML Kit validation, perceptual
- * hash duplicate detection, entry saving, streak calculation, and unlock.
+ * Manages camera state, photo capture to file, ML Kit validation from the
+ * saved file, perceptual hash duplicate detection, entry saving, streak
+ * calculation, and unlock.
  *
- * @param validatePhotoEntryUseCase Validates the photo via ML Kit + hash.
+ * CameraX saves the photo directly to a JPEG file, then ML Kit reads
+ * from that file via [InputImage.fromFilePath]. This avoids lossy manual
+ * bitmap conversion and gives ML Kit the highest-quality image data.
+ *
+ * @param validatePhotoEntryUseCase Validates the photo file via ML Kit + hash.
  * @param calculateStreakUseCase Calculates and updates the streak.
  * @param unlockAppsUseCase Unlocks blocked apps for the day.
  * @param entryRepository Repository for saving journal entries.
  * @param statsRepository Repository for updating total entries.
- * @param context Application context for saving photos to internal storage.
+ * @param context Application context for file path access.
  */
 @HiltViewModel
 class CameraViewModel @Inject constructor(
@@ -48,6 +51,16 @@ class CameraViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<CameraUiState>(CameraUiState.Previewing())
     val uiState: StateFlow<CameraUiState> = _uiState.asStateFlow()
 
+    /**
+     * Returns the directory where journal photos are saved.
+     * CameraScreen uses this to tell CameraX where to write.
+     */
+    fun getPhotosDir(): File {
+        val photosDir = File(context.filesDir, "journal_photos")
+        if (!photosDir.exists()) photosDir.mkdirs()
+        return photosDir
+    }
+
     /** @param event The [CameraEvent] to process. */
     fun onEvent(event: CameraEvent) {
         when (event) {
@@ -55,7 +68,7 @@ class CameraViewModel @Inject constructor(
                 _uiState.value = CameraUiState.Capturing
             }
             is CameraEvent.ToggleFlash -> toggleFlash()
-            is CameraEvent.PhotoCaptured -> processPhoto(event.bitmap)
+            is CameraEvent.PhotoSaved -> processPhoto(event.file)
             is CameraEvent.Retry -> {
                 _uiState.value = CameraUiState.Previewing(
                     isFlashOn = false,
@@ -69,30 +82,27 @@ class CameraViewModel @Inject constructor(
         _uiState.value = current.copy(isFlashOn = !current.isFlashOn)
     }
 
-    private fun processPhoto(bitmap: Bitmap) {
-        _uiState.value = CameraUiState.Processing(bitmap)
+    private fun processPhoto(photoFile: File) {
+        _uiState.value = CameraUiState.Processing
 
         viewModelScope.launch {
-            val result = validatePhotoEntryUseCase(bitmap)
+            val result = validatePhotoEntryUseCase(photoFile)
 
             when (result) {
                 is PhotoEntryValidationResult.Invalid -> {
                     _uiState.value = CameraUiState.Error(result.reason)
                 }
                 is PhotoEntryValidationResult.Valid -> {
-                    saveEntry(bitmap, result.extractedText, result.photoHash)
+                    saveEntry(photoFile, result.extractedText, result.photoHash)
                 }
             }
         }
     }
 
-    private suspend fun saveEntry(bitmap: Bitmap, extractedText: String, photoHash: String) {
-        // Save photo to internal storage
-        val photoPath = savePhotoToInternal(bitmap)
-
+    private suspend fun saveEntry(photoFile: File, extractedText: String, photoHash: String) {
         val entry = JournalEntry(
             entryType = "photo",
-            photoPath = photoPath,
+            photoPath = photoFile.absolutePath,
             photoHash = photoHash,
             ocrText = extractedText,
             capturedAt = DateUtils.currentTimeMillis(),
@@ -113,19 +123,5 @@ class CameraViewModel @Inject constructor(
         unlockAppsUseCase()
 
         _uiState.value = CameraUiState.Success(newStreak = newStreak)
-    }
-
-    private fun savePhotoToInternal(bitmap: Bitmap): String {
-        val photosDir = File(context.filesDir, "journal_photos")
-        if (!photosDir.exists()) photosDir.mkdirs()
-
-        val fileName = "journal_${DateUtils.todayDateString()}_${System.currentTimeMillis()}.jpg"
-        val file = File(photosDir, fileName)
-
-        FileOutputStream(file).use { out ->
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 85, out)
-        }
-
-        return file.absolutePath
     }
 }

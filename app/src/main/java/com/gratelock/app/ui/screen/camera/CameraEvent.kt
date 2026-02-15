@@ -1,6 +1,6 @@
 package com.gratelock.app.ui.screen.camera
 
-import android.graphics.Bitmap
+import java.io.File
 
 /**
  * Events that can be triggered from the Camera screen UI.
@@ -14,11 +14,11 @@ sealed interface CameraEvent {
     data object ToggleFlash : CameraEvent
 
     /**
-     * Photo bitmap is ready from CameraX capture.
+     * Photo saved to file by CameraX.
      *
-     * @param bitmap The captured photo bitmap.
+     * @param file The saved photo file.
      */
-    data class PhotoCaptured(val bitmap: Bitmap) : CameraEvent
+    data class PhotoSaved(val file: File) : CameraEvent
 
     /** User wants to retry after a validation error. */
     data object Retry : CameraEvent

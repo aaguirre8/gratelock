@@ -1,9 +1,11 @@
 package com.gratelock.app.util
 
-import android.graphics.Bitmap
+import android.content.Context
+import android.net.Uri
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+import java.io.File
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
@@ -34,9 +36,9 @@ sealed interface PhotoValidationResult {
 /**
  * Validates journal photos using ML Kit text recognition.
  *
- * Relies on ML Kit's built-in text detection capabilities rather than
- * re-implementing confidence scoring. If ML Kit finds text blocks with
- * enough total characters, the photo is considered a valid journal entry.
+ * Uses [InputImage.fromFilePath] to let ML Kit read the JPEG file directly,
+ * which is more reliable than manual bitmap conversion — especially for
+ * handwritten text where image quality matters.
  */
 object PhotoValidator {
 
@@ -44,15 +46,16 @@ object PhotoValidator {
     private const val MIN_TOTAL_CHARS = 15
 
     /**
-     * Validates a captured photo for journal content.
+     * Validates a captured photo file for journal content.
      *
-     * @param bitmap The captured photo to validate.
+     * @param context Application context for URI resolution.
+     * @param photoFile The saved photo file to validate.
      * @return [PhotoValidationResult.Valid] if the photo contains enough text,
      *         or [PhotoValidationResult.Invalid] with a warm error message.
      */
-    suspend fun validate(bitmap: Bitmap): PhotoValidationResult {
+    suspend fun validate(context: Context, photoFile: File): PhotoValidationResult {
         return suspendCoroutine { cont ->
-            val image = InputImage.fromBitmap(bitmap, 0)
+            val image = InputImage.fromFilePath(context, Uri.fromFile(photoFile))
             val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
 
             recognizer.process(image)
@@ -60,7 +63,6 @@ object PhotoValidator {
                     val textBlocks = result.textBlocks
                     val totalText = result.text
 
-                    // Check that ML Kit found any text at all
                     if (textBlocks.size < MIN_TEXT_BLOCKS) {
                         cont.resume(
                             PhotoValidationResult.Invalid(
@@ -71,7 +73,6 @@ object PhotoValidator {
                         return@addOnSuccessListener
                     }
 
-                    // Check minimum total characters
                     if (totalText.length < MIN_TOTAL_CHARS) {
                         cont.resume(
                             PhotoValidationResult.Invalid(
