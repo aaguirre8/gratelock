@@ -69,6 +69,11 @@ class GrateLockPreferences @Inject constructor(
         get() = prefs.getBoolean(KEY_STREAK_AT_RISK_ENABLED, true)
         set(value) = prefs.edit().putBoolean(KEY_STREAK_AT_RISK_ENABLED, value).apply()
 
+    /** Whether the user has completed onboarding. */
+    var onboardingComplete: Boolean
+        get() = prefs.getBoolean(KEY_ONBOARDING_COMPLETE, false)
+        set(value) = prefs.edit().putBoolean(KEY_ONBOARDING_COMPLETE, value).apply()
+
     /**
      * Syncs preferences from the Room [UserStats] source of truth.
      *
@@ -79,6 +84,7 @@ class GrateLockPreferences @Inject constructor(
             .putBoolean(KEY_UNLOCKED_TODAY, stats.isUnlockedToday)
             .putInt(KEY_CURRENT_STREAK, stats.currentStreak)
             .putInt(KEY_EMERGENCY_UNLOCKS, stats.emergencyUnlocksRemaining)
+            .putBoolean(KEY_ONBOARDING_COMPLETE, stats.onboardingComplete)
             .apply()
     }
 
@@ -106,5 +112,6 @@ class GrateLockPreferences @Inject constructor(
         const val KEY_REMINDER_ENABLED = "reminder_enabled"
         const val KEY_REMINDER_TIME = "reminder_time"
         const val KEY_STREAK_AT_RISK_ENABLED = "streak_at_risk_enabled"
+        const val KEY_ONBOARDING_COMPLETE = "onboarding_complete"
     }
 }

@@ -27,6 +27,7 @@ class HomeViewModelTest {
         assertEquals(0, state.totalEntries)
         assertEquals(0f, state.jarFillPercent, 0.001f)
         assertFalse(state.isUnlockedToday)
+        assertTrue(state.isAccessibilityServiceEnabled)
     }
 
     @Test
@@ -58,6 +59,12 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun homeUiState_success_accessibilityServiceDisabled() {
+        val state = HomeUiState.Success(isAccessibilityServiceEnabled = false)
+        assertFalse(state.isAccessibilityServiceEnabled)
+    }
+
+    @Test
     fun homeEvent_journalToday_isCorrectType() {
         val event: HomeEvent = HomeEvent.JournalToday
         assertTrue(event is HomeEvent.JournalToday)
@@ -67,5 +74,17 @@ class HomeViewModelTest {
     fun homeEvent_debugRelock_isCorrectType() {
         val event: HomeEvent = HomeEvent.DebugRelock
         assertTrue(event is HomeEvent.DebugRelock)
+    }
+
+    @Test
+    fun homeEvent_openAccessibilitySettings_isCorrectType() {
+        val event: HomeEvent = HomeEvent.OpenAccessibilitySettings
+        assertTrue(event is HomeEvent.OpenAccessibilitySettings)
+    }
+
+    @Test
+    fun homeEvent_refreshServiceStatus_isCorrectType() {
+        val event: HomeEvent = HomeEvent.RefreshServiceStatus
+        assertTrue(event is HomeEvent.RefreshServiceStatus)
     }
 }

@@ -12,12 +12,17 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,6 +41,7 @@ import com.gratelock.app.ui.theme.GrateLockTheme
  *
  * Displays the user's current streak, Happiness Jar fill level,
  * and today's unlock status. Shows real data from Room stats.
+ * Shows a banner if the accessibility service has been disabled.
  *
  * @param viewModel The [HomeViewModel] managing state.
  * @param onNavigateToAppSelection Callback to navigate to the App Selection screen.
@@ -46,6 +52,12 @@ fun HomeScreen(
     onNavigateToAppSelection: () -> Unit = {},
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    // Refresh service status when screen is resumed (after returning from settings)
+    LaunchedEffect(Unit) {
+        viewModel.onEvent(HomeEvent.RefreshServiceStatus)
+    }
+
     HomeScreenContent(
         uiState = uiState,
         onNavigateToAppSelection = onNavigateToAppSelection,
@@ -97,6 +109,15 @@ private fun HomeScreenContent(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                 )
+
+                // Accessibility service disabled banner
+                if (!uiState.isAccessibilityServiceEnabled) {
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    ServiceDisabledBanner(
+                        onReEnable = { onEvent(HomeEvent.OpenAccessibilitySettings) },
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(24.dp))
 
@@ -152,6 +173,56 @@ private fun HomeScreenContent(
     }
 }
 
+@Composable
+private fun ServiceDisabledBanner(
+    onReEnable: () -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.errorContainer,
+        ),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                text = "Blocking service is disabled",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onErrorContainer,
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = "GrateLock can't block apps without the accessibility service. " +
+                    "Tap below to re-enable it.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onErrorContainer,
+                textAlign = TextAlign.Center,
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Button(
+                onClick = onReEnable,
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError,
+                ),
+            ) {
+                Text(
+                    text = "Re-enable service",
+                    style = MaterialTheme.typography.labelMedium,
+                )
+            }
+        }
+    }
+}
+
 @Preview(showBackground = true)
 @Composable
 private fun HomeScreenLoadingPreview() {
@@ -184,6 +255,20 @@ private fun HomeScreenUnlockedPreview() {
                 totalEntries = 47,
                 jarFillPercent = 0.47f,
                 isUnlockedToday = true,
+            ),
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun HomeScreenServiceDisabledPreview() {
+    GrateLockTheme {
+        HomeScreenContent(
+            uiState = HomeUiState.Success(
+                currentStreak = 5,
+                isUnlockedToday = false,
+                isAccessibilityServiceEnabled = false,
             ),
         )
     }

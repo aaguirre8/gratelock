@@ -15,11 +15,13 @@ import com.gratelock.app.ui.screen.appselection.AppSelectionScreen
 import com.gratelock.app.ui.screen.home.HomeScreen
 import com.gratelock.app.ui.screen.jar.EntryDetailScreen
 import com.gratelock.app.ui.screen.jar.JarScreen
+import com.gratelock.app.ui.screen.onboarding.OnboardingScreen
 
 /** Routes where the bottom nav bar should be hidden. */
 private val hideBottomBarRoutes = setOf(
     Screen.AppSelection.route,
     Screen.EntryDetail.route,
+    Screen.Onboarding.route,
 )
 
 /**
@@ -27,9 +29,12 @@ private val hideBottomBarRoutes = setOf(
  *
  * Wraps all screens in a [Scaffold] with the [BottomNavBar] and manages
  * navigation between the main app destinations.
+ *
+ * @param startDestination The initial route. Defaults to [Screen.Home].
+ *   Pass [Screen.Onboarding] for first-time users.
  */
 @Composable
-fun GrateLockNavHost() {
+fun GrateLockNavHost(startDestination: String = Screen.Home.route) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -43,9 +48,21 @@ fun GrateLockNavHost() {
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = Screen.Home.route,
+            startDestination = startDestination,
             modifier = Modifier.padding(innerPadding),
         ) {
+            composable(Screen.Onboarding.route) {
+                OnboardingScreen(
+                    onComplete = {
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(Screen.Onboarding.route) { inclusive = true }
+                        }
+                    },
+                    onNavigateToAppSelection = {
+                        navController.navigate(Screen.AppSelection.route)
+                    },
+                )
+            }
             composable(Screen.Home.route) {
                 HomeScreen(
                     onNavigateToAppSelection = {
